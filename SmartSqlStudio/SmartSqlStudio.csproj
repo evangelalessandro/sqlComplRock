@@ -1,25 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
     <LangVersion>latest</LangVersion>
-    <!-- Necessario per .NET 10 preview -->
-    <SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
+    <AssemblyName>SmartSQLStudio</AssemblyName>
+    <RootNamespace>SmartSQLStudio</RootNamespace>
   </PropertyGroup>
   
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.2.1" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.2.1" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.1" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.1" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.1" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="11.2.1" Condition="'$(Configuration)' == 'Debug'" />
-    <!-- AvaloniaEdit: ultima versione disponibile su NuGet -->
-    <PackageReference Include="AvaloniaEdit" Version="11.1.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="ScintillaNET" Version="5.6.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="System.Reactive" Version="6.0.1" />
   </ItemGroup>
 </Project>
