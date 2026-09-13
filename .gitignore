@@ -1,48 +1,40 @@
 ```
 # Build artifacts
-bin/
-obj/
+*.obj
 *.exe
 *.dll
 *.pdb
 *.userprefs
+*.cache
+[Bb]in/
+[Oo]bj/
 
 # Dependencies
 packages/
 node_modules/
-.nuget/
-.nyc_output/
-coverage/
 
 # Logs
 *.log
-logs/
 
 # User-specific files
-.vs/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
 
-# Environment specific settings
+# Environment
 .env
 .env.local
-*.local
-*.bak
+*.env.*
+
+# Editors
+.vs/
+.vscode/
+.idea/
 
 # OS generated files
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Temporary files
-*.tmp
-*~
+ehthumbs.db
+Icon?
 ```
