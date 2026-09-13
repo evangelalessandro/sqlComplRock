@@ -1,34 +1,46 @@
 ```
-# Build artifacts
-bin/
-obj/
-*.dll
-*.exe
-*.pdb
-*.nupkg
-_TestResults/
-*.testlog
-*.trx
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Bb]in/
+[Oo]bj/
 
-# Dependencies
-packages/
-node_modules/
-vendor/
-
-# IDE files
-.vs/
-.vshistory/
-.vscode/
+# Visual Studio files
 *.user
 *.userosscache
 *.suo
 *.csproj.user
-*.userprefs
+*.vbproj.user
+*.vcxproj.user
+.vs/
+.vscode/
 
-# OS files
-.DS_Store
-Thumbs.db
-desktop.ini
+# Compiled files
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.iobj
+*.ipdb
+*.tlog
+*.obj
+*.lib
+*.so
+*.dylib
+*.a
+
+# Packages
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+.nuget.packages/
 
 # Logs
 *.log
@@ -36,8 +48,13 @@ desktop.ini
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
 
-# Test results
-TestResults/
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+ehthumbs.db
+Icon?
 ```
