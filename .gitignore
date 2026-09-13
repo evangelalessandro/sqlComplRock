@@ -70,3 +70,6 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+/SmartSqlStudio/obj
+/SmartSqlStudio/.vs
+/SmartSqlStudio/bin/Debug/net10.0-windows
