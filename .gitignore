@@ -2,45 +2,47 @@
 # Build artifacts
 bin/
 obj/
-*.dll
 *.exe
+*.dll
 *.pdb
 *.userprefs
-*.cache
-*.compiled
-**/Debug/
-**/Release/
-**/bin/
-**/obj/
 
 # Dependencies
 packages/
 node_modules/
-vendor/
+.nuget/
+.nyc_output/
+coverage/
 
 # Logs
 *.log
+logs/
 
-# Environment
-.env
-.env.local
-*.env
-
-# Editors
+# User-specific files
 .vs/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
 
+# Environment specific settings
+.env
+.env.local
+*.local
+*.bak
+
 # OS generated files
 .DS_Store
 Thumbs.db
-ehthumbs.db
-Icon?
 desktop.ini
 
-# Testing
-TestResults/
-coverage/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*~
 ```
