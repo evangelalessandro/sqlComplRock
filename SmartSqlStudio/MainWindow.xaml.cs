@@ -10,13 +10,18 @@ using Microsoft.Data.SqlClient;
 
 namespace SmartSQLStudio
 {
+    public class ColumnInfo
+    {
+        public string Table { get; set; } = "";
+        public string Column { get; set; } = "";
+    }
+
     public partial class MainWindow : Window
     {
         private readonly string _connectionString;
         private readonly string _server;
         private readonly string _initialDatabase;
         private int _tabCounter = 0;
-        private SqlConnection? _currentConnection;
         
         // IntelliSense data
         private List<string> _tables = new();
@@ -137,7 +142,7 @@ namespace SmartSQLStudio
                         var columnNode = new TreeViewItem 
                         { 
                             Header = $"{columnName} ({dataType})",
-                            Tag = new { Table = tableName, Column = columnName }
+                            Tag = new ColumnInfo { Table = tableName, Column = columnName }
                         };
                         tableNode.Items.Add(columnNode);
                     }
@@ -278,12 +283,22 @@ namespace SmartSQLStudio
 
         private void ShowIntelliSense()
         {
+            // Trova la TextBox corrente nel tab selezionato
+            if (MainTabControl.SelectedItem is not TabItem selectedTab)
+                return;
+                
+            var editorGrid = selectedTab.Content as Grid;
+            var textBox = editorGrid?.Children.OfType<TextBox>().FirstOrDefault(t => t.Tag?.ToString() == "SQLEditor");
+            
+            if (textBox == null)
+                return;
+
             // Mostra popup con suggerimenti
             var suggestionsWindow = new IntelliSenseWindow(_keywords, _tables, _snippets);
             suggestionsWindow.Owner = this;
             suggestionsWindow.ShowDialog();
             
-            if (suggestionsWindow.SelectedValue != null && sender is TextBox textBox)
+            if (suggestionsWindow.SelectedValue != null)
             {
                 textBox.SelectedText = suggestionsWindow.SelectedValue;
             }
@@ -395,9 +410,9 @@ namespace SmartSQLStudio
                     {
                         textBox.SelectedText = $"[{tableName}]";
                     }
-                    else if (item.Tag is dynamic tagInfo)
+                    else if (item.Tag is ColumnInfo columnInfo)
                     {
-                        textBox.SelectedText = $"[{tagInfo.Table}].[{tagInfo.Column}]";
+                        textBox.SelectedText = $"[{columnInfo.Table}].[{columnInfo.Column}]";
                     }
                 }
             }
