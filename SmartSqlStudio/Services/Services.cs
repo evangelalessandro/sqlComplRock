@@ -19,7 +19,8 @@ public interface ISnippetService
 public interface IIntelliSenseService
 {
     List<IntelliSenseSuggestion> GetSuggestions(string text, int caretPosition);
-    void LoadSchemaInfo(string connectionString);
+    void LoadSchemaInfo(string connectionString, List<string> tables);
+    void UpdateTableColumns(string tableName, List<string> columns);
     void ClearSchemaInfo();
 }
 
@@ -216,11 +217,17 @@ public class IntelliSenseService : IIntelliSenseService
         _snippetService = snippetService;
     }
 
-    public void LoadSchemaInfo(string connectionString)
+    public void LoadSchemaInfo(string connectionString, List<string> tables)
     {
-        // In a real implementation, this would connect to the database
-        // and load schema information
-        ClearSchemaInfo();
+        // Carica le tabelle dallo schema del database
+        _tables.Clear();
+        _tables.AddRange(tables);
+    }
+
+    public void UpdateTableColumns(string tableName, List<string> columns)
+    {
+        // Aggiorna le colonne per una specifica tabella
+        _columns[tableName] = columns;
     }
 
     public void ClearSchemaInfo()
@@ -259,17 +266,33 @@ public class IntelliSenseService : IIntelliSenseService
             });
         }
 
-        // Add tables
+        // Add tables from database schema
         foreach (var table in _tables.Where(t => t.ToUpper().StartsWith(currentWord)))
         {
             suggestions.Add(new IntelliSenseSuggestion
             {
                 Text = table,
                 DisplayText = table,
-                Description = "Table",
+                Description = "Database Table",
                 Type = SuggestionType.Table,
                 Priority = 90
             });
+        }
+
+        // Add columns from loaded tables
+        foreach (var tableCols in _columns)
+        {
+            foreach (var column in tableCols.Value.Where(c => c.ToUpper().StartsWith(currentWord)))
+            {
+                suggestions.Add(new IntelliSenseSuggestion
+                {
+                    Text = column,
+                    DisplayText = $"{tableCols.Key}.{column}",
+                    Description = $"Column in {tableCols.Key}",
+                    Type = SuggestionType.Column,
+                    Priority = 85
+                });
+            }
         }
 
         // Add snippets

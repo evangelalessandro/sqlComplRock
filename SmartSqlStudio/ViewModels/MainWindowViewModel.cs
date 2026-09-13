@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using SmartSqlStudio.Models;
 using SmartSqlStudio.Services;
+using Microsoft.Data.SqlClient;
 
 namespace SmartSqlStudio.ViewModels;
 
@@ -53,6 +54,28 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private string _searchText = string.Empty;
 
+    // Nuove proprietà per i tab e lo schema del database
+    [ObservableProperty]
+    private ObservableCollection<QueryTab> _queryTabs = new();
+
+    [ObservableProperty]
+    private QueryTab? _selectedTab;
+
+    [ObservableProperty]
+    private ObservableCollection<string> _availableTables = new();
+
+    [ObservableProperty]
+    private ObservableCollection<DatabaseColumn> _selectedTableColumns = new();
+
+    [ObservableProperty]
+    private string? _selectedTable;
+
+    [ObservableProperty]
+    private bool _isConnected;
+
+    [ObservableProperty]
+    private bool _showLoginWindow = true;
+
     public MainWindowViewModel()
     {
         _snippetService = new SnippetService();
@@ -60,6 +83,21 @@ public partial class MainWindowViewModel : ViewModelBase
         _databaseService = new DatabaseService();
         
         LoadSnippets();
+        InitializeNewTab();
+    }
+
+    private void InitializeNewTab()
+    {
+        var newTab = new QueryTab
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = $"Query {QueryTabs.Count + 1}",
+            Query = string.Empty,
+            Results = new ObservableCollection<QueryResult>()
+        };
+        
+        QueryTabs.Add(newTab);
+        SelectedTab = newTab;
     }
 
     private void LoadSnippets()
@@ -80,10 +118,27 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    partial void OnSelectedTabChanged(QueryTab? value)
+    {
+        if (value != null)
+        {
+            SqlQuery = value.Query;
+            QueryResults = value.Results;
+        }
+    }
+
+    partial void OnSqlQueryChanged(string value)
+    {
+        if (SelectedTab != null)
+        {
+            SelectedTab.Query = value;
+        }
+    }
+
     [RelayCommand]
     private async Task ExecuteQueryAsync()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionSting))
+        if (string.IsNullOrWhiteSpace(ConnectionString))
         {
             StatusMessage = "Please enter a connection string";
             return;
@@ -100,10 +155,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var result = await _databaseService.ExecuteQueryAsync(ConnectionSting, SqlQuery);
+            var result = await _databaseService.ExecuteQueryAsync(ConnectionString, SqlQuery);
             
-            QueryResults.Clear();
-            QueryResults.Add(result);
+            if (SelectedTab != null)
+            {
+                SelectedTab.Results.Clear();
+                SelectedTab.Results.Add(result);
+                QueryResults = SelectedTab.Results;
+            }
 
             if (result.HasError)
             {
@@ -112,6 +171,9 @@ public partial class MainWindowViewModel : ViewModelBase
             else
             {
                 StatusMessage = $"Query executed successfully. {result.RowCount} rows returned in {result.ExecutionTime.TotalMilliseconds:F2}ms";
+                
+                // Aggiorna lo schema dopo un'esecuzione riuscita
+                await LoadDatabaseSchemaAsync();
             }
         }
         catch (Exception ex)
@@ -127,7 +189,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task TestConnectionAsync()
     {
-        if (string.IsNullOrWhiteSpace(ConnectionSting))
+        if (string.IsNullOrWhiteSpace(ConnectionString))
         {
             BuildConnectionString();
         }
@@ -137,8 +199,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
         try
         {
-            var success = await _databaseService.TestConnectionAsync(ConnectionSting);
+            var success = await _databaseService.TestConnectionAsync(ConnectionString);
             StatusMessage = success ? "Connection successful!" : "Connection failed!";
+            
+            if (success)
+            {
+                IsConnected = true;
+                ShowLoginWindow = false;
+                await LoadDatabaseSchemaAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -147,6 +216,66 @@ public partial class MainWindowViewModel : ViewModelBase
         finally
         {
             IsExecuting = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task ConnectAsync()
+    {
+        BuildConnectionString();
+        await TestConnectionAsync();
+    }
+
+    private async Task LoadDatabaseSchemaAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ConnectionString))
+            return;
+
+        try
+        {
+            var tables = await _databaseService.GetTablesAsync(ConnectionString);
+            
+            AvailableTables.Clear();
+            foreach (var table in tables)
+            {
+                AvailableTables.Add(table);
+            }
+
+            // Carica lo schema nell'IntelliSense
+            _intelliSenseService.LoadSchemaInfo(ConnectionString, tables);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading schema: {ex.Message}";
+        }
+    }
+
+    partial void OnSelectedTableChanged(string? value)
+    {
+        if (!string.IsNullOrEmpty(value) && !string.IsNullOrWhiteSpace(ConnectionString))
+        {
+            LoadTableColumnsAsync(value);
+        }
+    }
+
+    private async void LoadTableColumnsAsync(string tableName)
+    {
+        try
+        {
+            var columns = await _databaseService.GetColumnsAsync(ConnectionString, tableName);
+            
+            SelectedTableColumns.Clear();
+            foreach (var column in columns)
+            {
+                SelectedTableColumns.Add(new DatabaseColumn { Name = column, TableName = tableName });
+            }
+
+            // Aggiorna l'IntelliSense con le colonne della tabella
+            _intelliSenseService.UpdateTableColumns(tableName, columns);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading columns: {ex.Message}";
         }
     }
 
@@ -160,9 +289,36 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NewQueryTab()
+    {
+        InitializeNewTab();
+        StatusMessage = "New query tab created";
+    }
+
+    [RelayCommand]
+    private void CloseTab(QueryTab? tab)
+    {
+        if (tab != null && QueryTabs.Count > 1)
+        {
+            var index = QueryTabs.IndexOf(tab);
+            QueryTabs.Remove(tab);
+            
+            if (SelectedTab == tab)
+            {
+                SelectedTab = QueryTabs[Math.Max(0, index - 1)];
+            }
+        }
+        StatusMessage = "Tab closed";
+    }
+
+    [RelayCommand]
     private void ClearQuery()
     {
         SqlQuery = string.Empty;
+        if (SelectedTab != null)
+        {
+            SelectedTab.Results.Clear();
+        }
         QueryResults.Clear();
         StatusMessage = "Query cleared";
     }
@@ -172,11 +328,11 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (UseWindowsAuthentication)
         {
-            ConnectionSting = $"Server={ServerName};Database={DatabaseName};Integrated Security=true;";
+            ConnectionString = $"Server={ServerName};Database={DatabaseName};Integrated Security=true;";
         }
         else
         {
-            ConnectionSting = $"Server={ServerName};Database={DatabaseName};User Id={Username};Password={Password};";
+            ConnectionString = $"Server={ServerName};Database={DatabaseName};User Id={Username};Password={Password};";
         }
     }
 
@@ -192,6 +348,25 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         // Implementation for opening snippet manager
         StatusMessage = "Snippet Manager (feature coming soon)";
+    }
+
+    [RelayCommand]
+    private void InsertTableName()
+    {
+        if (!string.IsNullOrEmpty(SelectedTable))
+        {
+            SqlQuery += $" [{SelectedTable}]";
+        }
+    }
+
+    [RelayCommand]
+    private void InsertColumnName()
+    {
+        if (SelectedTableColumns.Count > 0)
+        {
+            // In una implementazione reale, si potrebbe avere una colonna selezionata
+            StatusMessage = "Select a column from the list (feature coming soon)";
+        }
     }
 }
 
